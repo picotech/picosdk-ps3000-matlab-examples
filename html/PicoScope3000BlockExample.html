@@ -1,0 +1,550 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>PicoScope 3000 Series Oscilloscope Block Data Capture Example</title><meta name="generator" content="MATLAB 9.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-09-06"><meta name="DC.source" content="PicoScope3000BlockExample.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>PicoScope 3000 Series Oscilloscope Block Data Capture Example</h1><!--introduction--><p>This is a MATLAB script that demonstrates how to use the ps3000 API library functions to capture a block of data from a PicoScope 3000 Series oscilloscope using the following approach:</p><div><ul><li>Open a unit</li><li>Display unit information</li><li>Set up an input channel</li><li>Verify the timebase index</li><li>Setup a trigger</li><li>Collect a block of data</li><li>Retrieve the data values and convert to millivolts</li><li>Plot data</li><li>Close the unit</li></ul></div><p><b>To run this example:</b></p><p>Type <tt>PicoScope3000BlockExample</tt> at the MATLAB command prompt or run from the MATLAB Editor.</p><p><b>Copyright</b> &copy; 2015-2017 Pico Technology Ltd. See LICENSE file for terms.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Clear Command Window and Close Any Figures</a></li><li><a href="#2">Load Configuration Information</a></li><li><a href="#3">Define any variables to be used throughout the script</a></li><li><a href="#4">Load Libraries</a></li><li><a href="#5">Open a Connection to a Device</a></li><li><a href="#6">Display Unit Information</a></li><li><a href="#7">Setup Channels</a></li><li><a href="#8">Verify Timebase and Maximum Number of Samples</a></li><li><a href="#9">Setup Trigger</a></li><li><a href="#10">Data Collection</a></li><li><a href="#11">Process Data</a></li><li><a href="#12">Stop the Device</a></li><li><a href="#13">Close the Connection to the Device</a></li><li><a href="#14">Unload Libraries</a></li></ul></div><h2 id="1">Clear Command Window and Close Any Figures</h2><pre class="codeinput">clc;
+close <span class="string">all</span>;
+</pre><h2 id="2">Load Configuration Information</h2><pre class="codeinput">PS3000Config;
+</pre><h2 id="3">Define any variables to be used throughout the script</h2><pre class="codeinput">channelA    = ps3000Enuminfo.enPS3000Channel.PS3000_CHANNEL_A;
+chARange    = ps3000Enuminfo.enPS3000Range.PS3000_5V;
+chARangeMv  = PicoConstants.SCOPE_INPUT_RANGES(chARange + 1);
+</pre><h2 id="4">Load Libraries</h2><p>Load the (lib)ps3000 shared library using the prototype file. The (lib)ps3000Wrap shared library is not required for block mode captures.</p><pre class="codeinput">fprintf(<span class="string">'PicoScope 3000 Series Block Example\n\n'</span>);
+
+<span class="keyword">if</span> (~libisloaded(<span class="string">'ps3000'</span>))
+
+    <span class="keyword">if</span> (ismac)
+
+        loadlibrary(<span class="string">'libps3000.dylib'</span>, @ps3000MFile, <span class="string">'alias'</span>, <span class="string">'ps3000'</span>);
+
+    <span class="keyword">elseif</span> (isunix)
+
+        loadlibrary(<span class="string">'libps3000.so'</span>, @ps3000MFile, <span class="string">'alias'</span>, <span class="string">'ps3000'</span>);
+
+    <span class="keyword">elseif</span> (ispc)
+
+        loadlibrary(<span class="string">'ps3000.dll'</span>, @ps3000MFile);
+
+    <span class="keyword">else</span>
+
+        error(<span class="string">'PicoScope3000Block:OSNotSupported'</span>, <span class="string">'Operating System not supported.'</span>);
+
+    <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">PicoScope 3000 Series Block Example
+
+</pre><h2 id="5">Open a Connection to a Device</h2><pre class="codeinput">unitHandle = calllib(<span class="string">'ps3000'</span>, <span class="string">'ps3000_open_unit'</span>);
+
+<span class="keyword">if</span> (unitHandle == 0)
+
+    unloadlibrary(<span class="string">'ps3000'</span>);
+    error(<span class="string">'PicoScope3000Block:OscilloscopeNotFound'</span>, <span class="string">'No oscilloscope found.'</span>);
+
+<span class="keyword">elseif</span> (unitHandle == -1)
+
+    unloadlibrary(<span class="string">'ps3000'</span>);
+    error(<span class="string">'PicoScope3000BlockExample:OscilloscopeFailedToOpen'</span>, <span class="string">'Oscilloscope failed to open.'</span>);
+
+<span class="keyword">end</span>
+</pre><h2 id="6">Display Unit Information</h2><pre class="codeinput">disp(<span class="string">'Unit Information:'</span>);
+
+infoData = cell(6,1);
+
+<span class="keyword">for</span> i = 0:5
+
+    infoString = blanks(40);
+    stringLength = length(infoString);
+
+    [~, infoData{i + 1}] = calllib(<span class="string">'ps3000'</span>, <span class="string">'ps3000_get_unit_info'</span>, unitHandle, infoString, stringLength, i);
+
+<span class="keyword">end</span>
+
+disp(infoData);
+</pre><pre class="codeoutput">Unit Information:
+    '3.9.0.6'
+    '2.0'
+    '6'
+    '3424'
+    'IJY57/095'
+    '11Dec06'
+
+</pre><h2 id="7">Setup Channels</h2><pre class="codeinput">enabled     = 1;
+dc          = 1;
+
+status.setChA = calllib(<span class="string">'ps3000'</span>, <span class="string">'ps3000_set_channel'</span>, unitHandle, channelA, enabled, dc, int16(chARange));
+</pre><h2 id="8">Verify Timebase and Maximum Number of Samples</h2><p>Use the <tt>ps3000_get_timebase()</tt> function to query the driver as to the suitability of using a particular timebase index and the maximum number of samples available in the segment selected.</p><p>To use the fastest sampling interval possible, enable one channel and turn off any other channels.</p><p>Use a while loop to query the function until the status indicates that a valid timebase index has been selected. In this example, the timebase index of 4 is valid.</p><p>For further information on timebase indices, please refer to the Timebases section in the <a href="https://www.picotech.com/download/manuals/picoscope-3000-series-programmers-guide.pdf">PicoScope 3000 Series PC Oscilloscopes Programmer's Guide</a>.</p><pre class="codeinput"><span class="comment">% Set the number of samples to collect</span>
+nSamples                = 2000;
+timebaseIndex           = 4;
+pTimeIntervalNs         = libpointer(<span class="string">'int32Ptr'</span>, 0);
+pTimeUnits              = libpointer(<span class="string">'int16Ptr'</span>, 0);
+oversample              = 1;
+pMaxSamples             = libpointer(<span class="string">'int32Ptr'</span>, 0);
+
+status.getTimebase = 0;
+
+<span class="comment">% If timebase is not valid, increment until a suitable timebase has been</span>
+<span class="comment">% found.</span>
+<span class="keyword">while</span> (status.getTimebase == 0)
+
+    status.getTimebase  = calllib(<span class="string">'ps3000'</span>,<span class="string">'ps3000_get_timebase'</span>, unitHandle, timebaseIndex, nSamples, <span class="keyword">...</span>
+                                                                    pTimeIntervalNs, pTimeUnits, oversample, pMaxSamples);
+
+    <span class="keyword">if</span> (status.getTimebase == 1)
+
+        <span class="keyword">break</span>;
+
+    <span class="keyword">else</span>
+
+        timebaseIndex = timebaseIndex + 1;
+
+    <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+
+timeIntervalNs  = pTimeIntervalNs.Value;
+timeUnits       = pTimeUnits.Value;
+maxSamples      = pMaxSamples.Value;
+
+fprintf(<span class="string">'Timebase: %d, time interval: %d ns, time units: %d, max samples: %d\n'</span>, timebaseIndex, timeIntervalNs, timeUnits, maxSamples);
+</pre><pre class="codeoutput">Timebase: 4, time interval: 800 ns, time units: 1, max samples: 130559
+</pre><h2 id="9">Setup Trigger</h2><p>Set a trigger for a rising edge through a 1 V threshold level on channel A. Set the device to automatically trigger after 1 second if the trigger condition has not been met in that time.</p><pre class="codeinput">threshold   = mv2adc(1000, chARangeMv, PS3000Constants.PS3000_MAX_VALUE);
+direction   = ps3000Enuminfo.enPS3000TriggerDirection.PS3000_RISING;
+delay       = 0.0; <span class="comment">% Trigger event is the first data value in the block</span>
+autoTrigMs  = 1000;
+
+status.setTrigger2 = calllib(<span class="string">'ps3000'</span>, <span class="string">'ps3000_set_trigger2'</span>, unitHandle, channelA, <span class="keyword">...</span>
+                                                                threshold, direction, delay, autoTrigMs);
+</pre><h2 id="10">Data Collection</h2><p>Collect data in block mode</p><pre class="codeinput">pTimeIndisposedMs = libpointer(<span class="string">'int32Ptr'</span>, 0);
+
+status.runBlock = calllib(<span class="string">'ps3000'</span>, <span class="string">'ps3000_run_block'</span>, unitHandle, nSamples, timebaseIndex, <span class="keyword">...</span>
+                                                        oversample, pTimeIndisposedMs);
+
+<span class="comment">% Poll the driver until it indicates that the device has collected data.</span>
+ready = 0;
+
+<span class="keyword">while</span> (ready == 0)
+
+    ready = calllib(<span class="string">'ps3000'</span>, <span class="string">'ps3000_ready'</span>, unitHandle);
+    pause(0.01);
+
+<span class="keyword">end</span>
+
+<span class="comment">% Retrieve the data values</span>
+
+<span class="comment">% To define a buffer, first create an array and then create a libpointer</span>
+<span class="comment">% object. In this example, data will only be collected on channel A.</span>
+
+pTimesBuffer    = libpointer(<span class="string">'int32Ptr'</span>, zeros(nSamples, 1, <span class="string">'int32'</span>));
+pDataBufferA    = libpointer(<span class="string">'int16Ptr'</span>, zeros(nSamples, 1, <span class="string">'int16'</span>));
+
+pOverflow       = libpointer(<span class="string">'int16Ptr'</span>, 0);
+
+numValues = calllib(<span class="string">'ps3000'</span>, <span class="string">'ps3000_get_times_and_values'</span>, unitHandle, pTimesBuffer, <span class="keyword">...</span>
+                                pDataBufferA, [], [], [], pOverflow, timeUnits, nSamples);
+</pre><h2 id="11">Process Data</h2><p>Process data collected. In this example, the data is plotted.</p><pre class="codeinput"><span class="keyword">if</span> (numValues &gt; 0)
+
+    <span class="comment">% Retrieve values and convert to millivolts if required</span>
+    dataBufferA = adc2mv(pDataBufferA.Value, PicoConstants.SCOPE_INPUT_RANGES(chARange + 1), PS3000Constants.PS3000_MAX_VALUE);
+
+    figure1 = figure(<span class="string">'Name'</span>,<span class="string">'PicoScope 3000 Series Example - Block Mode Capture'</span>, <span class="keyword">...</span>
+    <span class="string">'NumberTitle'</span>, <span class="string">'off'</span>);
+
+    <span class="comment">% Channel A</span>
+    plot(pTimesBuffer.Value, dataBufferA);
+
+    ylim([(-1 * chARangeMv) chARangeMv]);
+    title(<span class="string">'Block Data Acquisition'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>);
+    legend(<span class="string">'Channel A'</span>);
+
+    <span class="comment">% Set x-axis according to the time units returned</span>
+
+    <span class="keyword">switch</span> (timeUnits)
+
+        <span class="keyword">case</span> ps3000Enuminfo.enPS3000TimeUnits.PS3000_FS
+
+            xLabelStr = <span class="string">'Time (fs)'</span>;
+
+        <span class="keyword">case</span> ps3000Enuminfo.enPS3000TimeUnits.PS3000_PS
+
+            xLabelStr = <span class="string">'Time (ps)'</span>;
+
+        <span class="keyword">case</span> ps3000Enuminfo.enPS3000TimeUnits.PS3000_NS
+
+            xLabelStr = <span class="string">'Time (ns)'</span>;
+
+        <span class="keyword">case</span> ps3000Enuminfo.enPS3000TimeUnits.PS3000_US
+
+            xLabelStr = <span class="string">'Time (\mus)'</span>;
+
+        <span class="keyword">case</span> ps3000Enuminfo.enPS3000TimeUnits.PS3000_MS
+
+            xLabelStr = <span class="string">'Time (ms)'</span>;
+
+        <span class="keyword">case</span> ps3000Enuminfo.enPS3000TimeUnits.PS3000_S
+
+            xLabelStr = <span class="string">'Time (s)'</span>;
+
+        <span class="keyword">otherwise</span>
+
+            xLabelStr = <span class="string">'Time (ns)'</span>;
+
+    <span class="keyword">end</span>
+
+    xlabel(xLabelStr);
+
+    ylabel(<span class="string">'Voltage (mV)'</span>);
+    grid <span class="string">on</span>;
+
+<span class="keyword">else</span>
+
+    warning(<span class="string">'PicoScope3000BlockExample:NoDataValuesReceived'</span>, <span class="string">'No samples collected.'</span>);
+
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="PicoScope3000BlockExample_01.png" alt=""> <h2 id="12">Stop the Device</h2><p>Ensure that the <tt>ps3000_stop()</tt> function is called at the end of data collection.</p><pre class="codeinput">status.stop = calllib(<span class="string">'ps3000'</span>, <span class="string">'ps3000_stop'</span>, unitHandle);
+</pre><h2 id="13">Close the Connection to the Device</h2><pre class="codeinput">status.closeUnit = calllib(<span class="string">'ps3000'</span>, <span class="string">'ps3000_close_unit'</span>, unitHandle);
+</pre><h2 id="14">Unload Libraries</h2><pre class="codeinput">unloadlibrary(<span class="string">'ps3000'</span>);
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% PicoScope 3000 Series Oscilloscope Block Data Capture Example
+% This is a MATLAB script that demonstrates how to use the ps3000 API
+% library functions to capture a block of data from a PicoScope 3000 Series 
+% oscilloscope using the following approach:
+%
+% * Open a unit 
+% * Display unit information 
+% * Set up an input channel
+% * Verify the timebase index
+% * Setup a trigger
+% * Collect a block of data
+% * Retrieve the data values and convert to millivolts
+% * Plot data
+% * Close the unit
+%
+% *To run this example:*
+% 	
+% Type |PicoScope3000BlockExample| at the MATLAB command prompt or run from the
+% MATLAB Editor.
+%
+% *Copyright* © 2015-2017 Pico Technology Ltd. See LICENSE file for terms.
+
+%% Clear Command Window and Close Any Figures
+
+clc;
+close all;
+
+%% Load Configuration Information
+
+PS3000Config;
+
+%% Define any variables to be used throughout the script
+
+channelA    = ps3000Enuminfo.enPS3000Channel.PS3000_CHANNEL_A;
+chARange    = ps3000Enuminfo.enPS3000Range.PS3000_5V;
+chARangeMv  = PicoConstants.SCOPE_INPUT_RANGES(chARange + 1);
+
+%% Load Libraries
+% Load the (lib)ps3000 shared library using the prototype file. The
+% (lib)ps3000Wrap shared library is not required for block mode captures.
+
+fprintf('PicoScope 3000 Series Block Example\n\n');
+
+if (~libisloaded('ps3000'))
+    
+    if (ismac)
+
+        loadlibrary('libps3000.dylib', @ps3000MFile, 'alias', 'ps3000');
+
+    elseif (isunix)
+
+        loadlibrary('libps3000.so', @ps3000MFile, 'alias', 'ps3000');
+
+    elseif (ispc)
+
+        loadlibrary('ps3000.dll', @ps3000MFile);
+
+    else
+
+        error('PicoScope3000Block:OSNotSupported', 'Operating System not supported.');
+
+    end
+    
+end
+
+%% Open a Connection to a Device
+
+unitHandle = calllib('ps3000', 'ps3000_open_unit');
+
+if (unitHandle == 0)
+   
+    unloadlibrary('ps3000');
+    error('PicoScope3000Block:OscilloscopeNotFound', 'No oscilloscope found.');
+   
+elseif (unitHandle == -1)
+    
+    unloadlibrary('ps3000');
+    error('PicoScope3000BlockExample:OscilloscopeFailedToOpen', 'Oscilloscope failed to open.');
+    
+end
+
+%% Display Unit Information
+
+disp('Unit Information:');
+
+infoData = cell(6,1);
+
+for i = 0:5
+   
+    infoString = blanks(40);
+    stringLength = length(infoString);
+    
+    [~, infoData{i + 1}] = calllib('ps3000', 'ps3000_get_unit_info', unitHandle, infoString, stringLength, i);
+    
+end
+
+disp(infoData);
+
+%% Setup Channels
+
+enabled     = 1;
+dc          = 1;
+
+status.setChA = calllib('ps3000', 'ps3000_set_channel', unitHandle, channelA, enabled, dc, int16(chARange));
+
+%% Verify Timebase and Maximum Number of Samples
+% Use the |ps3000_get_timebase()| function to query the driver as to the
+% suitability of using a particular timebase index and the maximum number
+% of samples available in the segment selected.
+%
+% To use the fastest sampling interval possible, enable one channel and 
+% turn off any other channels.
+%
+% Use a while loop to query the function until the status indicates that a
+% valid timebase index has been selected. In this example, the timebase
+% index of 4 is valid.
+%
+% For further information on timebase indices, please refer to the
+% Timebases section in the
+% <https://www.picotech.com/download/manuals/picoscope-3000-series-programmers-guide.pdf PicoScope
+% 3000 Series PC Oscilloscopes Programmer's Guide>.
+
+% Set the number of samples to collect
+nSamples                = 2000;
+timebaseIndex           = 4; 
+pTimeIntervalNs         = libpointer('int32Ptr', 0);
+pTimeUnits              = libpointer('int16Ptr', 0);
+oversample              = 1;
+pMaxSamples             = libpointer('int32Ptr', 0);
+
+status.getTimebase = 0;
+
+% If timebase is not valid, increment until a suitable timebase has been
+% found.
+while (status.getTimebase == 0)
+    
+    status.getTimebase  = calllib('ps3000','ps3000_get_timebase', unitHandle, timebaseIndex, nSamples, ...
+                                                                    pTimeIntervalNs, pTimeUnits, oversample, pMaxSamples);
+    
+    if (status.getTimebase == 1)
+       
+        break;
+        
+    else
+        
+        timebaseIndex = timebaseIndex + 1;
+        
+    end
+
+end
+
+timeIntervalNs  = pTimeIntervalNs.Value;
+timeUnits       = pTimeUnits.Value;
+maxSamples      = pMaxSamples.Value;
+
+fprintf('Timebase: %d, time interval: %d ns, time units: %d, max samples: %d\n', timebaseIndex, timeIntervalNs, timeUnits, maxSamples);
+
+%% Setup Trigger
+% Set a trigger for a rising edge through a 1 V threshold level on channel
+% A. Set the device to automatically trigger after 1 second if the trigger
+% condition has not been met in that time.
+
+threshold   = mv2adc(1000, chARangeMv, PS3000Constants.PS3000_MAX_VALUE);
+direction   = ps3000Enuminfo.enPS3000TriggerDirection.PS3000_RISING;
+delay       = 0.0; % Trigger event is the first data value in the block
+autoTrigMs  = 1000;
+
+status.setTrigger2 = calllib('ps3000', 'ps3000_set_trigger2', unitHandle, channelA, ...
+                                                                threshold, direction, delay, autoTrigMs);
+
+%% Data Collection
+% Collect data in block mode
+
+pTimeIndisposedMs = libpointer('int32Ptr', 0);
+
+status.runBlock = calllib('ps3000', 'ps3000_run_block', unitHandle, nSamples, timebaseIndex, ...
+                                                        oversample, pTimeIndisposedMs);
+
+% Poll the driver until it indicates that the device has collected data.                                                    
+ready = 0;
+
+while (ready == 0)
+    
+    ready = calllib('ps3000', 'ps3000_ready', unitHandle);
+    pause(0.01);
+    
+end
+
+% Retrieve the data values
+    
+% To define a buffer, first create an array and then create a libpointer
+% object. In this example, data will only be collected on channel A.
+
+pTimesBuffer    = libpointer('int32Ptr', zeros(nSamples, 1, 'int32'));
+pDataBufferA    = libpointer('int16Ptr', zeros(nSamples, 1, 'int16'));
+
+pOverflow       = libpointer('int16Ptr', 0); 
+
+numValues = calllib('ps3000', 'ps3000_get_times_and_values', unitHandle, pTimesBuffer, ...
+                                pDataBufferA, [], [], [], pOverflow, timeUnits, nSamples);
+
+%% Process Data
+% Process data collected. In this example, the data is plotted.
+
+if (numValues > 0)
+
+    % Retrieve values and convert to millivolts if required
+    dataBufferA = adc2mv(pDataBufferA.Value, PicoConstants.SCOPE_INPUT_RANGES(chARange + 1), PS3000Constants.PS3000_MAX_VALUE);
+    
+    figure1 = figure('Name','PicoScope 3000 Series Example - Block Mode Capture', ...
+    'NumberTitle', 'off');
+
+    % Channel A
+    plot(pTimesBuffer.Value, dataBufferA);
+    
+    ylim([(-1 * chARangeMv) chARangeMv]);
+    title('Block Data Acquisition', 'FontWeight', 'bold');
+    legend('Channel A');
+    
+    % Set x-axis according to the time units returned
+    
+    switch (timeUnits)
+        
+        case ps3000Enuminfo.enPS3000TimeUnits.PS3000_FS
+            
+            xLabelStr = 'Time (fs)';
+            
+        case ps3000Enuminfo.enPS3000TimeUnits.PS3000_PS
+            
+            xLabelStr = 'Time (ps)';
+            
+        case ps3000Enuminfo.enPS3000TimeUnits.PS3000_NS
+            
+            xLabelStr = 'Time (ns)';
+            
+        case ps3000Enuminfo.enPS3000TimeUnits.PS3000_US
+            
+            xLabelStr = 'Time (\mus)';
+            
+        case ps3000Enuminfo.enPS3000TimeUnits.PS3000_MS
+            
+            xLabelStr = 'Time (ms)';
+            
+        case ps3000Enuminfo.enPS3000TimeUnits.PS3000_S
+            
+            xLabelStr = 'Time (s)';
+            
+        otherwise
+            
+            xLabelStr = 'Time (ns)';
+            
+    end
+   
+    xlabel(xLabelStr);
+    
+    ylabel('Voltage (mV)');
+    grid on;
+    
+else
+    
+    warning('PicoScope3000BlockExample:NoDataValuesReceived', 'No samples collected.');
+    
+end
+
+%% Stop the Device
+% Ensure that the |ps3000_stop()| function is called at the end of data
+% collection.
+
+status.stop = calllib('ps3000', 'ps3000_stop', unitHandle);
+
+%% Close the Connection to the Device
+
+status.closeUnit = calllib('ps3000', 'ps3000_close_unit', unitHandle);
+
+%% Unload Libraries
+
+unloadlibrary('ps3000');
+##### SOURCE END #####
+--></body></html>
