@@ -47,7 +47,7 @@ Drivers are available for the following platforms. Refer to the subsections belo
 
 #### Linux
 
-* Follow the instructions from our [Linux Software & Drivers for Oscilloscopes and Data Loggers page](https://www.picotech.com/downloads/linux) to install the required `libps5000` driver package. For streaming data collection, the `libpswrappers` driver package will also need to be installed.
+* Follow the instructions from our [Linux Software & Drivers for Oscilloscopes and Data Loggers page](https://www.picotech.com/downloads/linux) to install the required `libps3000` driver package. For streaming data collection, the `libpswrappers` driver package will also need to be installed.
 
 ### Programmer's Guides
 
