@@ -18,7 +18,12 @@
 % Type |PicoScope3000BlockExample| at the MATLAB command prompt or run from the
 % MATLAB Editor.
 %
-% *Copyright* © 2015-2017 Pico Technology Ltd. See LICENSE file for terms.
+% *Copyright* © 2017 Pico Technology Ltd. See LICENSE file for terms.
+
+%% Suggested Input Test Signals
+% This example was published using the following test signal(s):
+%
+% * Channel A: 4 Vpp, 1 kHz sine wave
 
 %% Clear Command Window and Close Any Figures
 
@@ -57,7 +62,7 @@ if (~libisloaded('ps3000'))
 
     else
 
-        error('PicoScope3000Block:OSNotSupported', 'Operating System not supported.');
+        error('PicoScope3000BlockExample:OSNotSupported', 'Operating System not supported.');
 
     end
     
@@ -70,7 +75,7 @@ unitHandle = calllib('ps3000', 'ps3000_open_unit');
 if (unitHandle == 0)
    
     unloadlibrary('ps3000');
-    error('PicoScope3000Block:OscilloscopeNotFound', 'No oscilloscope found.');
+    error('PicoScope3000BlockExample:OscilloscopeNotFound', 'No oscilloscope found.');
    
 elseif (unitHandle == -1)
     
