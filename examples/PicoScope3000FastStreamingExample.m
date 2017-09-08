@@ -6,7 +6,6 @@
 % * Open a unit 
 % * Display unit information 
 % * Set up an input channel
-% * Verify the timebase index
 % * Setup a trigger
 % * Start the device collecting data
 % * Retrieve data values and convert to millivolts
@@ -44,7 +43,7 @@ chARangeMv  = PicoConstants.SCOPE_INPUT_RANGES(chARange + 1);
 maxADCCount = PS3000Constants.PS3000_MAX_VALUE;
 
 %% Load Libraries
-% Load the (lib)ps3000 and (lib)ps4000Wrap shared libraries using the
+% Load the (lib)ps3000 and (lib)ps3000Wrap shared libraries using the
 % prototype file.
 
 fprintf('PicoScope 3000 Series Fast Streaming Example\n\n');
@@ -226,12 +225,20 @@ fprintf('Click the STOP button to stop capture or wait for auto stop if enabled.
 
 % Variables to be used when collecting the data
 hasAutoStopped      = PicoConstants.FALSE;
-newSamples          = 0; % Number of new samples returned from the driver.
+newSamplesCollected = 0; % Number of new samples returned from the driver.
 previousTotal       = 0; % The previous total number of samples.
 totalSamples        = 0; % Total samples captured by the device.
 hasTriggered        = 0; % To indicate if trigger has occurred.
 triggeredAtIndex    = 0; % The index in the overall buffer where the trigger occurred.
 overflow            = 0; % Indicates if there has been an over-range on one or more channels.
+
+% Libpointer objects for streaming data parameters
+
+pOvFlow     = libpointer('int16Ptr', 0); 
+pTrigAt     = libpointer('uint32Ptr', 0);
+pTrig       = libpointer('int16Ptr', 0); 
+pAutoStop   = libpointer('int16Ptr', 0); 
+pNewSamples = libpointer('uint32Ptr', newSamplesCollected);
 
 status.getStreamingLastValues = PicoConstants.TRUE; % OK
 
@@ -340,8 +347,13 @@ while (hasAutoStopped == PicoConstants.FALSE && status.getStreamingLastValues ==
     end
     
     % Check for data
-    [status.availableData, overflow, triggeredAt, hasTriggered, hasAutoStopped, newSamplesCollected] = calllib('ps3000Wrap', 'AvailableData', ...
-        unitHandle, overflow, triggeredAtIndex, hasTriggered, hasAutoStopped, newSamples);
+    [status.availableData] = calllib('ps3000Wrap', 'AvailableData', ...
+        unitHandle, pOvFlow, pTrigAt, pTrig, pAutoStop, pNewSamples);
+    
+    newSamplesCollected = pNewSamples.Value;
+    hasTriggered        = pTrig.Value;
+    triggeredAtIndex    = pTrigAt.Value;
+    hasAutoStopped      = pAutoStop.Value;
     
     if (newSamplesCollected > 0)
        
@@ -349,13 +361,13 @@ while (hasAutoStopped == PicoConstants.FALSE && status.getStreamingLastValues ==
            
             % Adjust trigger position as MATLAB does not use zero-based
             % indexing
-            
-            bufferTriggerPosition = triggeredAt + 1;
-            
-            fprintf('Triggered - index in buffer: %d\n', bufferTriggerPosition);
+            bufferTriggerPosition = triggeredAtIndex + 1;
 
             % Adjust by 1 due to driver using zero indexing
             triggeredAtIndex = totalSamples + bufferTriggerPosition;
+            
+            fprintf('Triggered - index in buffer: %d, total samples at trigger point: %d\n', ...
+                bufferTriggerPosition, triggeredAtIndex);
             
         end
         
@@ -363,7 +375,16 @@ while (hasAutoStopped == PicoConstants.FALSE && status.getStreamingLastValues ==
         totalSamples    = totalSamples + newSamplesCollected;
 
         % Printing to console can slow down acquisition - use for demonstration
-        fprintf('Collected %d samples, total: %d\n', newSamplesCollected, totalSamples);
+        
+        if (newSamplesCollected == 1)
+            
+            fprintf('Collected %d sample, total: %d\n', newSamplesCollected, totalSamples);
+            
+        else
+            
+            fprintf('Collected %d samples, total: %d\n', newSamplesCollected, totalSamples);
+            
+        end
         
         % Convert data values to millivolts from the application buffers
         bufferChAmV = adc2mv(pAppBufferChA.Value(1:newSamplesCollected), chARangeMv, maxADCCount);
@@ -471,9 +492,6 @@ pTrigger        = libpointer('int16Ptr', 0);
 totalSamplesCollected = calllib('ps3000', 'ps3000_get_streaming_values_no_aggregation', unitHandle, pStartTime, pDataBufferChA, ...
     pDataBufferChB, pDataBufferChC, pDataBufferChD, pOverflow, pTriggerAt, pTrigger, numSamples);
 
-% [totalSamplesCollected, startTime, ~, ~, ~, ~, ovflow, triggerAt, trigger] = calllib('ps3000', 'ps3000_get_streaming_values_no_aggregation', unitHandle, pStartTime, pDataBufferChA, ...
-%     pDataBufferChB, pDataBufferChC, pDataBufferChD, pOverflow, pTriggerAt, pTrigger, numSamples);
-
 %% Process Data
 % Process data collected. In this example, the data is plotted.
 
@@ -482,9 +500,11 @@ if (totalSamplesCollected > 0)
     % Retrieve values and convert to millivolts if required
     dataBufferA = adc2mv(pDataBufferChA.Value, PicoConstants.SCOPE_INPUT_RANGES(chARange + 1), PS3000Constants.PS3000_MAX_VALUE);
     
-    % Calculate times - start time might be a negative number if
-    % pre-trigger samples are being collected
-    times = (pStartTime.Value + sampleInterval * (0:totalSamplesCollected - 1));
+    % Calculate time axis values - start time might be a negative number if
+    % pre-trigger samples are being collected. The time values are in
+    % nanoseconds. Convert the values back to the desired time units as
+    % part of the calculation.
+    finalTimeAxisValues = ((pStartTime.Value / timeScaleFactor) + sampleInterval * (0:totalSamplesCollected - 1));
     
     finalFigure = figure('Name','PicoScope 3000 Series Example - Fast Streaming Mode Capture', ...
     'NumberTitle', 'off');
@@ -497,7 +517,16 @@ if (totalSamplesCollected > 0)
     title(finalFigureAxes, 'Fast Streaming Data Acquisition', 'FontWeight', 'bold');
     
     % Channel A
-    plot(finalFigureAxes, times(1:totalSamplesCollected), dataBufferA(1:totalSamplesCollected));
+    plot(finalFigureAxes, finalTimeAxisValues(1:totalSamplesCollected), dataBufferA(1:totalSamplesCollected));
+    
+    % Plot trigger point
+    
+    if (pTrigger.Value == PicoConstants.TRUE)
+        
+        triggerIndex = pTriggerAt.Value + 1;
+        plot(finalFigureAxes, finalTimeAxisValues(triggerIndex), dataBufferA(triggerIndex), 'rx');
+        
+    end
     
     ylim(finalFigureAxes, [(-1 * chARangeMv) chARangeMv]);
     xlabel(finalFigureAxes, xLabelStr);
