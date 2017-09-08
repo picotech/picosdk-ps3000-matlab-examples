@@ -19,10 +19,10 @@
 % Type |PicoScope3000FastStreamingExample| at the MATLAB command prompt or run from the
 % MATLAB Editor.
 %
-% *Copyright* © 2015-2017 Pico Technology Ltd. See LICENSE file for terms.
+% *Copyright* © 2017 Pico Technology Ltd. See LICENSE file for terms.
 
 %% Suggested Input Test Signals
-% This example was published using the following test signals:
+% This example was published using the following test signal(s):
 %
 % * Channel A: 4 Vpp, 1 Hz sine wave
 
@@ -47,7 +47,7 @@ maxADCCount = PS3000Constants.PS3000_MAX_VALUE;
 % Load the (lib)ps3000 and (lib)ps4000Wrap shared libraries using the
 % prototype file.
 
-fprintf('PicoScope 3000 Series Fast Strreaming Example\n\n');
+fprintf('PicoScope 3000 Series Fast Streaming Example\n\n');
 
 if (~libisloaded('ps3000') || ~libisloaded('ps3000Wrap'))
     
@@ -81,11 +81,13 @@ unitHandle = calllib('ps3000', 'ps3000_open_unit');
 if (unitHandle == 0)
    
     unloadlibrary('ps3000');
+    unloadlibrary('ps3000Wrap');
     error('PicoScope3000FastStreamingExample:OscilloscopeNotFound', 'No oscilloscope found.');
    
 elseif (unitHandle == -1)
     
     unloadlibrary('ps3000');
+    unloadlibrary('ps3000Wrap');
     error('PicoScope3000FastStreamingExample:OscilloscopeFailedToOpen', 'Oscilloscope failed to open.');
     
 end
@@ -109,7 +111,7 @@ for i = 0:5
     % wrapper shared library
     if (i == PicoStatus.PICO_VARIANT_INFO)
        
-        channelCount = str2double(infoString(2));
+        channelCount = str2double(infoData{i + 1}(2));
         status.setChannelCount = calllib('ps3000Wrap', 'setChannelCount', unitHandle, channelCount);
         
     end
@@ -140,12 +142,15 @@ status.setEnabledChannels = calllib('ps3000Wrap', 'setEnabledChannels', unitHand
 %% Setup Trigger
 % Set a trigger for a rising edge through a 1 V threshold level on channel
 % A. Set the device to wait indefinitely for a trigger event with the
-% trigger point being in the middle of the set of the data.
+% trigger point being in the middle of the set of the data. If the trigger
+% channel is set to enPS3000Channel.PS3000_NONE, the trigger will be
+% disabled.
 
-threshold   = mv2adc(1000, chARangeMv, PS3000Constants.PS3000_MAX_VALUE);
-direction   = ps3000Enuminfo.enPS3000TriggerDirection.PS3000_RISING;
-delay       = -50.0; 
-autoTrigMs  = 0;
+triggerChannel  = ps3000Enuminfo.enPS3000Channel.PS3000_CHANNEL_A;
+threshold       = mv2adc(1000, chARangeMv, PS3000Constants.PS3000_MAX_VALUE);
+direction       = ps3000Enuminfo.enPS3000TriggerDirection.PS3000_RISING;
+delay           = -50.0; 
+autoTrigMs      = 0;
 
 status.setTrigger2 = calllib('ps3000', 'ps3000_set_trigger2', unitHandle, channelA, ...
                                                                 threshold, direction, delay, autoTrigMs);
@@ -156,7 +161,7 @@ status.setTrigger2 = calllib('ps3000', 'ps3000_set_trigger2', unitHandle, channe
 % copied. In this example, raw data values will be collected from the
 % device.
 
-overviewBufferSize  = 250000; % Size of the temporary buffers used to collect data from the device.
+overviewBufferSize  = 25000; % Size of the temporary buffers used to collect data from the device.
 
 % Application Buffers - these are for temporarily copying data from the driver.
 pAppBufferChA = libpointer('int16Ptr', zeros(overviewBufferSize, 1, 'int16'));
@@ -173,7 +178,7 @@ status.setAppAndDriverBuffersA = calllib('ps3000Wrap', 'SetDataBuffer', unitHand
 
 sampleInterval          = 50;
 timeUnits               = ps3000Enuminfo.enPS3000TimeUnits.PS3000_US;
-numSamples              = 100000;
+numSamples              = 200000;
 autoStop                = 1;
 numSamplesPerAggregate  = 1; % Raw data collection required
 
@@ -200,11 +205,11 @@ choice = questdlg('Plot live streaming data?', ...
 switch choice
     
     case 'Yes'
-        disp('Live streaming data collection with second plot on completion.');
+        disp('Live fast streaming data collection with second plot on completion.');
         plotLiveData = PicoConstants.TRUE;
     
     case 'No'
-        disp('Streaming data plot on completion.');
+        disp('Fast streaming data plot on completion.');
         plotLiveData = PicoConstants.FALSE;
     
 end
@@ -228,7 +233,7 @@ hasTriggered        = 0; % To indicate if trigger has occurred.
 triggeredAtIndex    = 0; % The index in the overall buffer where the trigger occurred.
 overflow            = 0; % Indicates if there has been an over-range on one or more channels.
 
-status.getStreamingLatestValues = PicoConstants.TRUE; % OK
+status.getStreamingLastValues = PicoConstants.TRUE; % OK
 
 % Display stop button
 [stopFig.f, stopFig.h] = stopButton();             
@@ -237,37 +242,45 @@ flag = 1; % Use flag variable to indicate if stop button has been clicked (0)
 setappdata(gcf, 'run', flag);
 
 % Set x-axis for both live and post-capture plots according to the time
-% units specified
+% units specified. Also find the scaling factor to convert to nanoseconds
+% when retrieving the data from the driver post-capture).
     
     switch (timeUnits)
         
         case ps3000Enuminfo.enPS3000TimeUnits.PS3000_FS
             
-            xLabelStr = 'Time (fs)';
+            xLabelStr       = 'Time (fs)';
+            timeScaleFactor = 1e-6;
             
         case ps3000Enuminfo.enPS3000TimeUnits.PS3000_PS
             
-            xLabelStr = 'Time (ps)';
+            xLabelStr       = 'Time (ps)';
+            timeScaleFactor = 1e-3;
             
         case ps3000Enuminfo.enPS3000TimeUnits.PS3000_NS
             
-            xLabelStr = 'Time (ns)';
+            xLabelStr       = 'Time (ns)';
+            timeScaleFactor = 1;
             
         case ps3000Enuminfo.enPS3000TimeUnits.PS3000_US
             
-            xLabelStr = 'Time (\mus)';
+            xLabelStr       = 'Time (\mus)';
+            timeScaleFactor = 1e3;
             
         case ps3000Enuminfo.enPS3000TimeUnits.PS3000_MS
             
-            xLabelStr = 'Time (ms)';
+            xLabelStr       = 'Time (ms)';
+            timeScaleFactor = 1e6;
             
         case ps3000Enuminfo.enPS3000TimeUnits.PS3000_S
             
-            xLabelStr = 'Time (s)';
+            xLabelStr       = 'Time (s)';
+            timeScaleFactor = 1e9;
             
         otherwise
             
-            xLabelStr = 'Time (ns)';
+            xLabelStr       = 'Time (ns)';
+            timeScaleFactor = 1e-9;
             
     end
 
@@ -299,14 +312,14 @@ if (plotLiveData == PicoConstants.TRUE)
 
 end
 
-while(hasAutoStopped == PicoConstants.FALSE && status.getStreamingLatestValues == PicoConstants.TRUE)
+while (hasAutoStopped == PicoConstants.FALSE && status.getStreamingLastValues == PicoConstants.TRUE)
     
     ready = PicoConstants.FALSE;
     
     while (ready == PicoConstants.FALSE)
-
-       status.getStreamingLatestValues = calllib('ps3000Wrap', 'GetStreamingLatestValues', unitHandle);
-       
+   
+       status.getStreamingLastValues = calllib('ps3000Wrap', 'GetStreamingLastValues', unitHandle); 
+        
        ready = calllib('ps3000Wrap', 'IsReady', unitHandle);
 
        % Give option to abort from here
@@ -321,14 +334,16 @@ while(hasAutoStopped == PicoConstants.FALSE && status.getStreamingLatestValues =
        end
 
        drawnow;
+       
+       pause(1);
 
     end
     
     % Check for data
-    [overflow, triggeredAt, hasTriggered, hasAutoStopped, newSamples] = calllib('ps3000Wrap', 'AvailableData', ...
+    [status.availableData, overflow, triggeredAt, hasTriggered, hasAutoStopped, newSamplesCollected] = calllib('ps3000Wrap', 'AvailableData', ...
         unitHandle, overflow, triggeredAtIndex, hasTriggered, hasAutoStopped, newSamples);
     
-    if (newSamples > 0)
+    if (newSamplesCollected > 0)
        
         if (hasTriggered == PicoConstants.TRUE)
            
@@ -345,13 +360,13 @@ while(hasAutoStopped == PicoConstants.FALSE && status.getStreamingLatestValues =
         end
         
         previousTotal   = totalSamples;
-        totalSamples    = totalSamples + newSamples;
+        totalSamples    = totalSamples + newSamplesCollected;
 
         % Printing to console can slow down acquisition - use for demonstration
-        fprintf('Collected %d samples, total: %d\n', newSamples, totalSamples);
+        fprintf('Collected %d samples, total: %d\n', newSamplesCollected, totalSamples);
         
         % Convert data values to millivolts from the application buffers
-        bufferChAmV = adc2mv(pAppBufferChA.Value(1:newSamples), channelARangeMV, maxADCCount);
+        bufferChAmV = adc2mv(pAppBufferChA.Value(1:newSamplesCollected), chARangeMv, maxADCCount);
         
         % Process collected data further if required - this example plots
         % the data if the User has selected 'Yes' at the prompt.
@@ -365,7 +380,7 @@ while(hasAutoStopped == PicoConstants.FALSE && status.getStreamingLatestValues =
             % Multiply by ratio mode as samples get reduced.
             time = (double(sampleInterval) * (previousTotal:(totalSamples - 1)));
         
-            plot(time, bufferChAmV);
+            plot(axes1, time, bufferChAmV);
 
         end
 
@@ -422,34 +437,54 @@ end
 
 fprintf('\n');
 
+%% Stop the Device
+% Ensure that the |ps3000_stop()| function is called at the end of data
+% collection.
+
+status.stop = calllib('ps3000', 'ps3000_stop', unitHandle);
+
 %% Retrieve Raw Data Samples from the Driver
 % Raw data can also be retrieved directly from the driver when the data
 % completion is complete.
 
-pStartTime      = libpointer('doublePtr', 0.0);
+% Calculate the start time based on the trigger delay
+
+if (triggerChannel == ps3000Enuminfo.enPS3000Channel.PS3000_NONE)
+    
+    startTime = 0.0;
+    
+else
+   
+    startTime = (delay / 100) * numSamples * sampleInterval * timeScaleFactor;
+    
+end
+    
+pStartTime      = libpointer('doublePtr', startTime); 
 pDataBufferChA  = libpointer('int16Ptr', zeros(numSamples, 1, 'int16'));
 pDataBufferChB  = [];
 pDataBufferChC  = [];
 pDataBufferChD  = [];
-pOveflow        = libpointer('int16Ptr', 0);
+pOverflow       = libpointer('int16Ptr', 0);
 pTriggerAt      = libpointer('uint32Ptr', 0);
 pTrigger        = libpointer('int16Ptr', 0);
 
 totalSamplesCollected = calllib('ps3000', 'ps3000_get_streaming_values_no_aggregation', unitHandle, pStartTime, pDataBufferChA, ...
     pDataBufferChB, pDataBufferChC, pDataBufferChD, pOverflow, pTriggerAt, pTrigger, numSamples);
 
+% [totalSamplesCollected, startTime, ~, ~, ~, ~, ovflow, triggerAt, trigger] = calllib('ps3000', 'ps3000_get_streaming_values_no_aggregation', unitHandle, pStartTime, pDataBufferChA, ...
+%     pDataBufferChB, pDataBufferChC, pDataBufferChD, pOverflow, pTriggerAt, pTrigger, numSamples);
+
 %% Process Data
 % Process data collected. In this example, the data is plotted.
 
-if (totalSamplesCollected> 0)
+if (totalSamplesCollected > 0)
 
     % Retrieve values and convert to millivolts if required
     dataBufferA = adc2mv(pDataBufferChA.Value, PicoConstants.SCOPE_INPUT_RANGES(chARange + 1), PS3000Constants.PS3000_MAX_VALUE);
     
     % Calculate times - start time might be a negative number if
     % pre-trigger samples are being collected
-    %times = (pStartTime.Values + (
-    
+    times = (pStartTime.Value + sampleInterval * (0:totalSamplesCollected - 1));
     
     finalFigure = figure('Name','PicoScope 3000 Series Example - Fast Streaming Mode Capture', ...
     'NumberTitle', 'off');
@@ -459,37 +494,27 @@ if (totalSamplesCollected> 0)
     
     hold(finalFigureAxes, 'on');
 
-    title('Fast Streaming Data Acquisition', 'FontWeight', 'bold');
+    title(finalFigureAxes, 'Fast Streaming Data Acquisition', 'FontWeight', 'bold');
     
     % Channel A
-    plot(finalFigureAxes, times, dataBufferA);
+    plot(finalFigureAxes, times(1:totalSamplesCollected), dataBufferA(1:totalSamplesCollected));
     
-    ylim([(-1 * chARangeMv) chARangeMv]);
-    
-    legend('Channel A');
-    
-    
-    xlabel(xLabelStr);
-    
-    ylabel('Voltage (mV)');
-    grid on;
+    ylim(finalFigureAxes, [(-1 * chARangeMv) chARangeMv]);
+    xlabel(finalFigureAxes, xLabelStr);
+    ylabel(finalFigureAxes, 'Voltage (mV)');
+    legend(finalFigureAxes, 'Channel A');
+    grid(finalFigureAxes, 'on');
     
 else
     
-    warning('PicoScope3000FastStreamingExample:NoDataValuesReceived', 'No samples collected.');
+    warning('PicoScope3000FastStreamingExample:NoSamplesCollected', 'No samples collected.');
     
 end
 
-%% Stop the Device
-% Ensure that the |ps3000_stop()| function is called at the end of data
-% collection.
+%% Clear Fast Streaming Parameters
+% Clear parameters if another data acquisition run is required.
 
-status.stop = calllib('ps3000', 'ps3000_stop', unitHandle);
-
-% Clear Trigger Information
-
-% Clear Fast Streaming Parameters if another run is required
-
+status.clearFastStreamingParameters = calllib('ps3000Wrap', 'ClearTriggerInfo', unitHandle);
 
 %% Close the Connection to the Device
 
